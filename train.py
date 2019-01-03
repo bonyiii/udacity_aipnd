@@ -15,16 +15,16 @@ from torchvision import datasets, transforms, models
 from collections import OrderedDict
 
 def loader(img_dir):
-    train_transforms = transforms.Compose([transforms.RandomRotation(30),
+    loader_transforms = transforms.Compose([transforms.RandomRotation(30),
                                            transforms.RandomResizedCrop(224),
                                            transforms.RandomHorizontalFlip(),
                                            transforms.ToTensor(),
                                            transforms.Normalize([0.485, 0.456, 0.406],
                                                                 [0.229, 0.224, 0.225])])
-    train_dataset = datasets.ImageFolder(img_dir, transform = train_transforms)
-    trainloader = torch.utils.data.DataLoader(train_dataset, batch_size = 64, shuffle = True)
+    dataset = datasets.ImageFolder(img_dir, transform = loader_transforms)
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size = 64, shuffle = True)
 
-    return [train_dataset, trainloader]
+    return [dataset, data_loader]
 
 
 def load_model(arch, hidden_units):
@@ -53,7 +53,21 @@ def load_model(arch, hidden_units):
 
     return model
 
-def train(model, trainloader, epochs, learning_rate, print_every = 40, criterion = nn.NLLLoss(), device = 'cpu'):
+def validation(model, testloader, criterion, device):
+    test_loss = 0
+    accuracy = 0
+    
+    for images, labels in testloader:
+        images, labels = images.to(device), labels.to(device)
+        output = model.forward(images)
+        test_loss += criterion(output, labels).item()
+        ps = torch.exp(output)
+        equality = (labels.data == ps.max(dim=1)[1])
+        accuracy += equality.type(torch.FloatTensor).mean()
+
+    return test_loss, accuracy
+
+def train(model, trainloader, testloader, epochs, learning_rate, print_every = 40, criterion = nn.NLLLoss(), device = 'cpu'):
     optimizer = optim.Adam(model.classifier.parameters(), lr=learning_rate)
     epochs = epochs
     print_every = print_every
@@ -64,6 +78,7 @@ def train(model, trainloader, epochs, learning_rate, print_every = 40, criterion
 
     for e in range(epochs):
         running_loss = 0
+        model.train()
         for ii, (inputs, labels) in enumerate(trainloader):
             steps += 1
 
@@ -80,8 +95,13 @@ def train(model, trainloader, epochs, learning_rate, print_every = 40, criterion
             running_loss += loss.item()
 
             if steps % print_every == 0:
+                model.eval()
+                with torch.no_grad():
+                    test_loss, accuracy = validation(model, testloader, criterion, device = device)
                 print("Epoch: {}/{}... ".format(e+1, epochs),
-                      "Loss: {:.4f}".format(running_loss/print_every))
+                      "Loss: {:.4f}".format(running_loss/print_every),
+                      "Test Loss: {:.3f}.. ".format(test_loss/len(testloader)),
+                      "Test Accuracy: {:.3f}".format(accuracy/len(testloader)))
 
                 running_loss = 0
 
@@ -102,6 +122,7 @@ def save_checkpoint(model, train_dataset, save_dir, arch):
     torch.save(checkpoint,  save_dir + '/checkpoint.pth')
     print(checkpoint['classifier'])
 
+
 def debug_args(args):
     print("Command Line Arguments:",
           "\n   arch =", args.arch,
@@ -114,7 +135,7 @@ def debug_args(args):
 def get_input_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--dir',  '-d', type = str, default = 'images',          help = 'Image Data Directory')
+    parser.add_argument('--dir',  '-d', type = str, default = 'images',          help = 'Root image data directory, train and test folders should nested underneath Eg: images/train, images/test ')
     parser.add_argument('--arch', '-a', type = str, default = 'vgg',             help = 'Architecture type to use for image recognition, Default: vgg')
     parser.add_argument('--save_dir', '-s', type = str, default = 'checkpoints', help = 'Checkopints directory name, Default: chekcpoints')
     parser.add_argument('--gpu', '-g', type = bool, help = 'Whether or not use GPU acceleration, Default: False')
@@ -129,24 +150,31 @@ def get_input_args():
     return parser.parse_args()
 
 def main():
-  start_time = time()
-  # Creates & retrieves Command Line Arugments
-  args = get_input_args()
+    start_time = time()
+    # Creates & retrieves Command Line Arugments
+    args = get_input_args()
 
-  debug_args(args)
-  train_dataset, trainloader = loader(args.dir)
-  model = load_model(args.arch, args.hidden_units)
-  train(model, trainloader, epochs = args.epochs, print_every = 1, learning_rate = args.learning_rate)
-  save_checkpoint(model, train_dataset, args.save_dir, args.arch)
+    debug_args(args)
+    train_dataset, trainloader = loader(args.dir + '/train')
+    test_dataset, testloader = loader(args.dir + '/test')
+    model = load_model(args.arch, args.hidden_units)
 
-  # Measure total program runtime by collecting end time
-  end_time = time()
+    if args.gpu:
+        device = 'cuda'
+    else:
+        device = 'cpu'
 
-  # Computes overall runtime in seconds & prints it in hh:mm:ss format
-  tot_time = end_time - start_time
-  print("\n** Total Elapsed Runtime:",
-        str(int((tot_time/3600)))+":"+str(int((tot_time%3600)/60))+":"
-        +str(int((tot_time%3600)%60)) )
+    train(model, trainloader, testloader, epochs = args.epochs, print_every = 1, learning_rate = args.learning_rate, device = device)
+    save_checkpoint(model, train_dataset, args.save_dir, args.arch)
+
+    # Measure total program runtime by collecting end time
+    end_time = time()
+
+    # Computes overall runtime in seconds & prints it in hh:mm:ss format
+    tot_time = end_time - start_time
+    print("\n** Total Elapsed Runtime:",
+          str(int((tot_time/3600)))+":"+str(int((tot_time%3600)/60))+":"
+          +str(int((tot_time%3600)%60)) )
 
 # Call to main function to run the program
 if __name__ == "__main__":
