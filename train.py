@@ -56,7 +56,7 @@ def load_model(arch, hidden_units):
 def validation(model, testloader, criterion, device):
     test_loss = 0
     accuracy = 0
-    
+
     for images, labels in testloader:
         images, labels = images.to(device), labels.to(device)
         output = model.forward(images)
@@ -135,10 +135,10 @@ def debug_args(args):
 def get_input_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--dir',  '-d', type = str, default = 'images',          help = 'Root image data directory, train and test folders should nested underneath Eg: images/train, images/test ')
-    parser.add_argument('--arch', '-a', type = str, default = 'vgg',             help = 'Architecture type to use for image recognition, Default: vgg')
+    parser.add_argument('dir', type = str, default = 'images', help = 'Root image data directory, train and test folders should nested underneath Eg: images/train, images/test ')
+    parser.add_argument('--arch', '-a', type = str, default = 'vgg', help = 'Architecture type to use for image recognition, Default: vgg')
     parser.add_argument('--save_dir', '-s', type = str, default = 'checkpoints', help = 'Checkopints directory name, Default: chekcpoints')
-    parser.add_argument('--gpu', '-g', type = bool, help = 'Whether or not use GPU acceleration, Default: False')
+    parser.add_argument('--gpu', '-g', action = 'store_true', help = 'Whether or not use GPU acceleration, Default: False')
     parser.add_argument('--epochs', type = int, default = 3, help = 'Number of epochs, Default: 3')
     parser.add_argument('--learning_rate', type = float, default = 0.001, help = 'Learning rate, Default: 0.001')
     parser.add_argument('--hidden_units', type = int, default = 4096, help = 'Number of hidden units, Default: 4096')
