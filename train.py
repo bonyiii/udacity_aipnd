@@ -67,13 +67,16 @@ def validation(model, testloader, criterion, device):
 
     return test_loss, accuracy
 
-def train(model, trainloader, testloader, epochs, learning_rate, print_every = 40, criterion = nn.NLLLoss(), device = 'cpu'):
+def check_accuracy_on_test(model, testloader, criterion, device):
+    test_loss, accuracy = validation(model, testloader, criterion, device)
+    print('Accuracy of the network on the {} test images: {} %'.format(len(testloader), (accuracy / len(testloader)) * 100))
+
+def train(model, trainloader, validationloader, epochs, learning_rate, criterion, print_every = 40, device = 'cpu'):
     optimizer = optim.Adam(model.classifier.parameters(), lr=learning_rate)
     epochs = epochs
     print_every = print_every
     steps = 0
 
-    # change to cuda
     model.to(device)
 
     for e in range(epochs):
@@ -97,11 +100,11 @@ def train(model, trainloader, testloader, epochs, learning_rate, print_every = 4
             if steps % print_every == 0:
                 model.eval()
                 with torch.no_grad():
-                    test_loss, accuracy = validation(model, testloader, criterion, device = device)
+                    test_loss, accuracy = validation(model, validationloader, criterion, device = device)
                 print("Epoch: {}/{}... ".format(e+1, epochs),
                       "Loss: {:.4f}".format(running_loss/print_every),
-                      "Test Loss: {:.3f}.. ".format(test_loss/len(testloader)),
-                      "Test Accuracy: {:.3f}".format(accuracy/len(testloader)))
+                      "Validation Loss: {:.3f}.. ".format(test_loss/len(validationloader)),
+                      "Validation Accuracy: {:.3f}".format(accuracy/len(validationloader)))
 
                 running_loss = 0
 
@@ -157,6 +160,7 @@ def main():
     debug_args(args)
     train_dataset, trainloader = loader(args.dir + '/train')
     test_dataset, testloader = loader(args.dir + '/test')
+    validation_dataset, validationloader = loader(args.dir + '/valid')
     model = load_model(args.arch, args.hidden_units)
 
     if args.gpu:
@@ -164,7 +168,9 @@ def main():
     else:
         device = 'cpu'
 
-    train(model, trainloader, testloader, epochs = args.epochs, print_every = 1, learning_rate = args.learning_rate, device = device)
+    criterion = nn.NLLLoss()
+    train(model, trainloader, validationloader, epochs = args.epochs,  learning_rate = args.learning_rate, criterion = criterion, print_every = 40, device = device)
+    check_accuracy_on_test(model, testloader, criterion, device)
     save_checkpoint(model, train_dataset, args.save_dir, args.arch)
 
     # Measure total program runtime by collecting end time
