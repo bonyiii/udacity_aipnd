@@ -85,8 +85,8 @@ def print_result(probs, classes, category_names):
 def get_input_args():
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('image', type = str, help = 'Image to specify')
     parser.add_argument('--save_dir', '-s', type = str, default = 'checkpoints', help = 'Checkopints directory name, Default: chekcpoints')
-    parser.add_argument('--image',  '-d', type = str, help = 'Image to specify')
     parser.add_argument('--category_names', type = str, help = 'Mapping for category names')
     parser.add_argument('--top_k', type = int, default = 5, help = 'How many classes should be displayed')
     parser.add_argument('--gpu', '-g', type = bool, default = False, help = 'Whether or not use GPU acceleration, Default: False')
