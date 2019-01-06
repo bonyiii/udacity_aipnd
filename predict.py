@@ -43,13 +43,7 @@ def process_image(path):
 
 def load_model_from_checkpoint(path):
     checkpoint = torch.load(path + '/checkpoint.pth')
-
-    if checkpoint['arch']== 'vgg':
-        model = models.vgg11(pretrained=True)
-    elif checkpoint['arch'] == "alexnet":
-        model = models.alexnet(pretrained=True)
-    elif checkpoint['arch'] == "densenet121":
-        model = models.densenet121(pretrained=True)
+    model = getattr(models, checkpoint['arch'])(pretrained = True)
 
     for param in model.parameters():
         param.requires_grad = False

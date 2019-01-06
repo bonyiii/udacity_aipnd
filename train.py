@@ -35,7 +35,7 @@ def loader(img_dir, augment = False):
 
 
 def load_model(arch, hidden_units):
-    if arch == "vgg":
+    if arch == "vgg11":
         model = models.vgg11(pretrained=True)
         input_units = 25088
     elif arch == "alexnet":
@@ -148,7 +148,7 @@ def get_input_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('dir', type = str, default = 'images', help = 'Root image data directory, train and test folders should nested underneath Eg: images/train, images/test ')
-    parser.add_argument('--arch', '-a', type = str, default = 'vgg', help = 'Architecture type to use for image recognition, Default: vgg')
+    parser.add_argument('--arch', '-a', type = str, default = 'vgg11', help = 'Architecture type to use for image recognition, Default: vgg')
     parser.add_argument('--save_dir', '-s', type = str, default = 'checkpoints', help = 'Checkopints directory name, Default: chekcpoints')
     parser.add_argument('--gpu', '-g', action = 'store_true', help = 'Whether or not use GPU acceleration, Default: False')
     parser.add_argument('--epochs', type = int, default = 3, help = 'Number of epochs, Default: 3')
