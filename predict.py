@@ -24,12 +24,20 @@ def crop_center(im, new_width, new_height):
 
     return im.crop((left, top, right, bottom))
 
+def resize(im, size):
+    width, height = im.size
+    shortest_side = min(width, height)
+
+    return im.resize((int((width / shortest_side) * size), int(height / shortest_side) * size), Image.ANTIALIAS)
+
 def process_image(path):
     ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
         returns an Numpy array
     '''
     image = Image.open(path)
-    image.thumbnail((256,256), Image.ANTIALIAS)
+    image = resize(image, 256)
+    # To see difference change shortest_side from min to max. If min is used than the image will be a square. Otherwise it will be a rectangle so it can be 217 X 256.
+    # image.save('image_after_resize.jpg')
     image = crop_center(image, 224, 224)
 
     mean = [0.485, 0.456, 0.406]
