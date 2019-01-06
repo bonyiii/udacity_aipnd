@@ -172,7 +172,7 @@ def main():
     validation_dataset, validationloader = loader(args.dir + '/valid')
     model = load_model(args.arch, args.hidden_units)
 
-    if args.gpu:
+    if torch.cuda.is_available() and args.gpu:
         device = 'cuda'
     else:
         device = 'cpu'
