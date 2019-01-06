@@ -14,13 +14,20 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms, models
 from collections import OrderedDict
 
-def loader(img_dir):
-    loader_transforms = transforms.Compose([transforms.RandomRotation(30),
+def loader(img_dir, augment = False):
+    if augment:
+        loader_transforms = transforms.Compose([transforms.RandomRotation(30),
                                            transforms.RandomResizedCrop(224),
                                            transforms.RandomHorizontalFlip(),
                                            transforms.ToTensor(),
                                            transforms.Normalize([0.485, 0.456, 0.406],
                                                                 [0.229, 0.224, 0.225])])
+    else:
+        loader_transforms = transforms.Compose([transforms.CenterCrop(224),
+                                                transforms.ToTensor(),
+                                                transforms.Normalize([0.485, 0.456, 0.406],
+                                                                [0.229, 0.224, 0.225])])
+
     dataset = datasets.ImageFolder(img_dir, transform = loader_transforms)
     data_loader = torch.utils.data.DataLoader(dataset, batch_size = 64, shuffle = True)
 
@@ -53,6 +60,7 @@ def load_model(arch, hidden_units):
 
     return model
 
+
 def validation(model, testloader, criterion, device):
     test_loss = 0
     accuracy = 0
@@ -70,6 +78,7 @@ def validation(model, testloader, criterion, device):
 def check_accuracy_on_test(model, testloader, criterion, device):
     test_loss, accuracy = validation(model, testloader, criterion, device)
     print('Accuracy of the network on the {} test images: {} %'.format(len(testloader), (accuracy / len(testloader)) * 100))
+
 
 def train(model, trainloader, validationloader, epochs, learning_rate, criterion, print_every = 40, device = 'cpu'):
     optimizer = optim.Adam(model.classifier.parameters(), lr=learning_rate)
@@ -158,7 +167,7 @@ def main():
     args = get_input_args()
 
     debug_args(args)
-    train_dataset, trainloader = loader(args.dir + '/train')
+    train_dataset, trainloader = loader(args.dir + '/train', augment = True)
     test_dataset, testloader = loader(args.dir + '/test')
     validation_dataset, validationloader = loader(args.dir + '/valid')
     model = load_model(args.arch, args.hidden_units)
